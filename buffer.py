@@ -11,9 +11,32 @@ class Buffer:
         self.cfg = cfg
         self.model = model
         self.device = device
-        self.buffer = torch.zeros((cfg["buffer_size"], cfg["d_in"]), device=device)
         self.token_pointer = 0
         self.first = True
+        self.layer_idx = 0
+
+        self.buffer_in = torch.zeros((cfg["buffer_size"], cfg["d_in"]), device=device)
+        self.buffer_out = torch.zeros((cfg["buffer_size"], cfg["d_in"]), device=device)
+
+        self.pre_h = None
+        self.post_h = None
+
+        def pre_hook(value, hook):
+            h = value.detach().clone()
+            h = h.reshape(-1, self.cfg["d_in"])
+            self.pre_h = h
+            return value
+        
+        def post_hook(value, hook):
+            h = value.detach().clone()
+            h = h.reshape(-1, self.d_model)
+            self.post_h = h
+            return value
+
+        self.fwd_hooks = [
+            (f"blocks.{self.layer_idx}.ln2.hook_normalized", pre_hook),
+            (f"blocks.{self.layer_idx}.hook_mlp_out", post_hook),
+            ]
 
         self.load_data()
         self.refresh()
@@ -39,7 +62,6 @@ class Buffer:
             all_tokens = torch.load(cache_path)
             print("Shuffling the data")
             all_tokens = all_tokens[torch.randperm(all_tokens.shape[0])]
-
     
     @torch.no_grad()
     def refresh(self):
@@ -52,23 +74,32 @@ class Buffer:
             self.first = False
             for _ in range(0, num_batches, self.cfg["model_batch_size"]):
                 tokens = self.all_tokens[self.token_pointer:self.token_pointer+self.cfg["model_batch_size"]]
-                _, cache = self.model.run_with_cache(tokens, stop_at_layer=1, names_filter=utils.get_act_name("post", 0))
-                mlp_acts = cache[utils.get_act_name("post", 0)].reshape(-1, self.cfg["d_mlp"]) ### TODO: fix this
 
-                self.buffer[self.pointer: self.pointer+mlp_acts.shape[0]] = mlp_acts
-                self.pointer += mlp_acts.shape[0]
+                with self.model.hooks(fwd_hooks=self.fwd_hooks):
+                    self.model(tokens, stop_at_layer=self.layer_idx+1)
+
+                self.buffer_in[self.pointer: self.pointer+self.pre_h.shape[0]] = self.pre_h
+                self.buffer_out[self.pointer: self.pointer+self.post_h.shape[0]] = self.post_h
+
+                self.pointer += self.pre_h.shape[0]
                 self.token_pointer += self.cfg["model_batch_size"]
 
         self.pointer = 0
-        self.buffer = self.buffer[torch.randperm(self.buffer.shape[0]).cuda()]
+        # Not sure if re-shuffling is necessary
+        perm = torch.randperm(self.buffer_in.shape[0]).cuda()
+        self.buffer_in = self.buffer_in[perm]
+        self.buffer_out = self.buffer_out[perm]
 
     @torch.no_grad()
     def next(self):
-        out = self.buffer[self.pointer:self.pointer+self.cfg["batch_size"]]
+        res_in = self.buffer_in[self.pointer:self.pointer+self.cfg["batch_size"]]
+        res_out = self.buffer_out[self.pointer:self.pointer+self.cfg["batch_size"]]
+
         self.pointer += self.cfg["batch_size"]
         if self.pointer > self.buffer.shape[0]//2 - self.cfg["batch_size"]:
-            # print("Refreshing the buffer!")
+            print("Refreshing the buffer")
             self.refresh()
-        return out
+
+        return res_in, res_out
 
 
