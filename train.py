@@ -9,7 +9,7 @@ import torch.nn as nn
 import wandb
 
 from model import MLP
-from data import Buffer
+from buffer import Buffer
 
 
 def train(cfg, model, buffer):
