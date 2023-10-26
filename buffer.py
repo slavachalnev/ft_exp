@@ -1,7 +1,6 @@
 import os
 import torch
 import torch.nn as nn
-from transformer_lens import HookedTransformer
 from datasets import load_dataset
 import einops
 

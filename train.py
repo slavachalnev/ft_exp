@@ -7,6 +7,7 @@ import tqdm
 import torch
 import torch.nn as nn
 import wandb
+from transformer_lens import HookedTransformer
 
 from model import MLP
 from buffer import Buffer
@@ -78,6 +79,10 @@ if __name__ == "__main__":
         "act": "gelu",
     }
 
+    default_cfg["model_batch_size"] = default_cfg["batch_size"] // default_cfg["seq_len"] * 16
+    default_cfg["buffer_size"] = default_cfg["batch_size"] * default_cfg["buffer_mult"]
+    default_cfg["buffer_batches"] = default_cfg["buffer_size"] // default_cfg["seq_len"]
+
     # create workdir
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     save_dir = f"mlps/{timestamp}"
@@ -87,9 +92,10 @@ if __name__ == "__main__":
     with open(f"{save_dir}/cfg.json", "w") as f:
         json.dump(default_cfg, f)
 
+    original_model = HookedTransformer.from_pretrained(default_cfg["original_model"])
 
     model = MLP(default_cfg)
-    buffer = Buffer(default_cfg)
+    buffer = Buffer(cfg=default_cfg, model=original_model)
 
     train(default_cfg, model, buffer, save_dir)
 
