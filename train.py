@@ -12,7 +12,7 @@ from model import MLP
 from buffer import Buffer
 
 
-def train(cfg, model, buffer):
+def train(cfg, model, buffer, save_dir):
     try:
         wandb.init(project="autoencoder", config=cfg)
         num_batches = cfg["num_tokens"] // cfg["batch_size"]
@@ -50,14 +50,14 @@ def train(cfg, model, buffer):
             #     })
 
             if (i+1) % 30000 == 0:
-                model.save()
+                torch.save(model.state_dict(), os.path.join(save_dir, f"mlp_{i}.pt"))
                 # wandb.log({"reset_neurons": 0.0})
                 # freqs = get_freqs(50)
                 # to_be_reset = (freqs<10**(-5.5))
                 # print("Resetting neurons!", to_be_reset.sum())
                 # re_init(to_be_reset, model)
     finally:
-        model.save()
+        torch.save(model.state_dict(), os.path.join(save_dir, "mlp_final.pt"))
 
 
 if __name__ == "__main__":
@@ -91,6 +91,6 @@ if __name__ == "__main__":
     model = MLP(default_cfg)
     buffer = Buffer(default_cfg)
 
-    train(default_cfg, model, buffer)
+    train(default_cfg, model, buffer, save_dir)
 
 

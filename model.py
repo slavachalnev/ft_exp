@@ -43,14 +43,11 @@ class MLP(nn.Module):
         l1_loss = self.l1_coeff * (positive_activations.float().sum())
         loss = l2_loss + l1_loss
         return loss, x_pred, activations, l2_loss, l1_loss
-    
 
     @torch.no_grad()
     def renormalise_decoder(self):
         self.W_dec.data = self.W_dec / self.W_dec.norm(dim=-1, keepdim=True)
-
-
-    
+        
     def encode(self, x):
         raise NotImplementedError
     
