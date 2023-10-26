@@ -28,7 +28,7 @@ class Buffer:
         
         def post_hook(value, hook):
             h = value.detach().clone()
-            h = h.reshape(-1, self.d_model)
+            h = h.reshape(-1, self.cfg["d_in"])
             self.post_h = h
             return value
 
@@ -57,10 +57,10 @@ class Buffer:
             all_tokens_reshaped[:, 0] = self.model.tokenizer.bos_token_id
             all_tokens_reshaped = all_tokens_reshaped[torch.randperm(all_tokens_reshaped.shape[0])]
             torch.save(all_tokens_reshaped, cache_path)
-        else:
-            all_tokens = torch.load(cache_path)
-            print("Shuffling the data")
-            all_tokens = all_tokens[torch.randperm(all_tokens.shape[0])]
+
+        self.all_tokens = torch.load(cache_path)
+        print("Shuffling the data")
+        self.all_tokens = self.all_tokens[torch.randperm(self.all_tokens.shape[0])]
     
     @torch.no_grad()
     def refresh(self):
@@ -95,7 +95,7 @@ class Buffer:
         res_out = self.buffer_out[self.pointer:self.pointer+self.cfg["batch_size"]]
 
         self.pointer += self.cfg["batch_size"]
-        if self.pointer > self.buffer.shape[0]//2 - self.cfg["batch_size"]:
+        if self.pointer > self.buffer_in.shape[0]//2 - self.cfg["batch_size"]:
             print("Refreshing the buffer")
             self.refresh()
 

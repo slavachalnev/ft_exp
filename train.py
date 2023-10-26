@@ -95,6 +95,8 @@ if __name__ == "__main__":
     original_model = HookedTransformer.from_pretrained(default_cfg["original_model"])
 
     model = MLP(default_cfg)
+    model.to("cuda")
+
     buffer = Buffer(cfg=default_cfg, model=original_model)
 
     train(default_cfg, model, buffer, save_dir)

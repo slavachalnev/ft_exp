@@ -161,4 +161,6 @@ cython_debug/
 
 
 mlps/
+data/
+wandb/
 *.pt
