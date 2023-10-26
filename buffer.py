@@ -42,6 +42,7 @@ class Buffer:
         print("Buffer initialised")
     
     def load_data(self):
+        self.token_pointer = 0
         os.makedirs("data", exist_ok=True)
         cache_path = "data/c4_code_2b_tokens_reshaped.pt"
         dataset_path = "data/c4_code_tokenized_2b.hf"
@@ -97,6 +98,11 @@ class Buffer:
         self.pointer += self.cfg["batch_size"]
         if self.pointer > self.buffer_in.shape[0]//2 - self.cfg["batch_size"]:
             print("Refreshing the buffer")
+            self.refresh()
+        
+        if self.token_pointer > self.all_tokens.shape[0] - self.cfg["model_batch_size"]:
+            print("Reloading the data")
+            self.load_data()
             self.refresh()
 
         return res_in, res_out
