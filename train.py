@@ -83,6 +83,9 @@ if __name__ == "__main__":
     save_dir = f"mlps/{timestamp}"
 
     # save cfg
+    os.makedirs(save_dir, exist_ok=True)
+    with open(f"{save_dir}/cfg.json", "w") as f:
+        json.dump(default_cfg, f)
 
 
     model = MLP(default_cfg)
