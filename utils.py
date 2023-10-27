@@ -40,6 +40,8 @@ def get_recons_loss(original_model, local_encoder, all_tokens, cfg, num_batches=
         zero_abl_loss = original_model.run_with_hooks(tokens, return_type="loss", fwd_hooks=[(tutils.get_act_name("post", 0), zero_ablate_hook)])
 
         loss_list.append((loss, recons_loss, zero_abl_loss))
+        pre_h = None
+        
     losses = torch.tensor(loss_list)
     loss, recons_loss, zero_abl_loss = losses.mean(0).tolist()
 

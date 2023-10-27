@@ -20,7 +20,6 @@ def train(cfg, model, buffer, save_dir):
         num_batches = cfg["num_tokens"] // cfg["batch_size"]
         encoder_optim = torch.optim.Adam(model.parameters(), lr=cfg["lr"], betas=(cfg["beta1"], cfg["beta2"]))
         recons_scores = []
-        act_freq_scores_list = []
         for i in tqdm.trange(num_batches):
             mlp_in, mlp_out = buffer.next()
             loss, x_reconstruct, mid_acts, l2_loss, l1_loss = model(mlp_in, mlp_out)
@@ -42,13 +41,13 @@ def train(cfg, model, buffer, save_dir):
                 print("Reconstruction:", x)
                 recons_scores.append(x[0])
                 freqs = get_freqs(original_model=original_model, local_encoder=model, all_tokens=buffer.all_tokens, cfg=cfg, num_batches=5)
-                act_freq_scores_list.append(freqs)
                 # histogram(freqs.log10(), marginal="box", histnorm="percent", title="Frequencies")
                 wandb.log({
                     "recons_score": x[0],
                     "dead": (freqs==0).float().mean().item(),
                     "below_1e-6": (freqs<1e-6).float().mean().item(),
                     "below_1e-5": (freqs<1e-5).float().mean().item(),
+                    "num_activated": freqs.sum().item(),
                 })
 
             # if (i) % 30000 == 0:
@@ -74,7 +73,7 @@ if __name__ == "__main__":
         "seq_len": 128,
 
         "lr": 1e-4,
-        "l1_coeff": 3e-4,
+        "l1_coeff": 1e-3,
         "beta1": 0.9,
         "beta2": 0.99,
 
