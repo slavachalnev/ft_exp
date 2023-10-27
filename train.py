@@ -11,6 +11,7 @@ from transformer_lens import HookedTransformer
 
 from model import MLP
 from buffer import Buffer
+from utils import get_recons_loss, get_freqs
 
 
 def train(cfg, model, buffer, save_dir):
@@ -33,30 +34,30 @@ def train(cfg, model, buffer, save_dir):
 
             if (i) % 100 == 0:
                 wandb.log(loss_dict)
-                print(loss_dict)
 
-            # TODO: log stuff
-            # if (i) % 1000 == 0:
-            #     x = (get_recons_loss())
-            #     print("Reconstruction:", x)
-            #     recons_scores.append(x[0])
-            #     freqs = get_freqs(5)
-            #     act_freq_scores_list.append(freqs)
-            #     # histogram(freqs.log10(), marginal="box", histnorm="percent", title="Frequencies")
-            #     wandb.log({
-            #         "recons_score": x[0],
-            #         "dead": (freqs==0).float().mean().item(),
-            #         "below_1e-6": (freqs<1e-6).float().mean().item(),
-            #         "below_1e-5": (freqs<1e-5).float().mean().item(),
-            #     })
+            if (i) % 1000 == 0:
+                x = get_recons_loss(original_model=original_model, local_encoder=model, all_tokens=buffer.all_tokens, cfg=cfg)
+                print("Reconstruction:", x)
+                recons_scores.append(x[0])
+                freqs = get_freqs(original_model=original_model, local_encoder=model, all_tokens=buffer.all_tokens, cfg=cfg, num_batches=5)
+                act_freq_scores_list.append(freqs)
+                # histogram(freqs.log10(), marginal="box", histnorm="percent", title="Frequencies")
+                wandb.log({
+                    "recons_score": x[0],
+                    "dead": (freqs==0).float().mean().item(),
+                    "below_1e-6": (freqs<1e-6).float().mean().item(),
+                    "below_1e-5": (freqs<1e-5).float().mean().item(),
+                })
 
-            if (i+1) % 30000 == 0:
-                torch.save(model.state_dict(), os.path.join(save_dir, f"mlp_{i}.pt"))
+            # if (i) % 30000 == 0:
                 # wandb.log({"reset_neurons": 0.0})
                 # freqs = get_freqs(50)
                 # to_be_reset = (freqs<10**(-5.5))
                 # print("Resetting neurons!", to_be_reset.sum())
                 # re_init(to_be_reset, model)
+
+            if (i+1) % 100000 == 0:
+                torch.save(model.state_dict(), os.path.join(save_dir, f"mlp_{i}.pt"))
     finally:
         torch.save(model.state_dict(), os.path.join(save_dir, "mlp_final.pt"))
 

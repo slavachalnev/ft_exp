@@ -97,7 +97,6 @@ class Buffer:
 
         self.pointer += self.cfg["batch_size"]
         if self.pointer > self.buffer_in.shape[0]//2 - self.cfg["batch_size"]:
-            print("Refreshing the buffer")
             self.refresh()
         
         if self.token_pointer > self.all_tokens.shape[0] - self.cfg["model_batch_size"]:
