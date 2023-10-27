@@ -15,14 +15,14 @@ def get_recons_loss(original_model, local_encoder, all_tokens, cfg, num_batches=
     pre_h = None
 
     def pre_hook(value, hook):
+        nonlocal pre_h
         h = value.detach().clone()
-        h = h.reshape(-1, cfg["d_in"])
         pre_h = h
         return value
     
     def replacement_hook(mlp_post, hook):
         # have to run pre_hook first
-        mlp_post_reconstr = local_encoder(pre_h)[1]
+        mlp_post_reconstr = local_encoder(pre_h, torch.zeros_like(pre_h))[1]
         return mlp_post_reconstr
 
     fwd_hooks = [
@@ -61,7 +61,7 @@ def get_freqs(original_model, local_encoder, all_tokens, cfg, num_batches=25):
         mlp_acts = cache["blocks.0.ln2.hook_normalized"]
         mlp_acts = mlp_acts.reshape(-1, cfg["d_in"])
 
-        hidden = local_encoder(mlp_acts)[2]
+        hidden = local_encoder(mlp_acts, torch.zeros_like(mlp_acts))[2]
         
         act_freq_scores += (hidden > 0).sum(0)
         total+=hidden.shape[0]

@@ -32,6 +32,8 @@ def train(cfg, model, buffer, save_dir):
 
             loss_dict = {"loss": loss.item(), "l2_loss": l2_loss.item(), "l1_loss": l1_loss.item()}
 
+            del loss, x_reconstruct, mid_acts, l2_loss, l1_loss, mlp_in, mlp_out
+
             if (i) % 100 == 0:
                 wandb.log(loss_dict)
 
@@ -65,9 +67,10 @@ def train(cfg, model, buffer, save_dir):
 if __name__ == "__main__":
     default_cfg = {
         "original_model": "gelu-1l",
-        "batch_size": 4096,
+        # "batch_size": 4096,
+        "batch_size": 2048,
         "buffer_mult": 384,
-        "num_tokens": int(2e9),
+        "num_tokens": int(3e9),
         "seq_len": 128,
 
         "lr": 1e-4,
@@ -87,6 +90,7 @@ if __name__ == "__main__":
     # create workdir
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     save_dir = f"mlps/{timestamp}"
+    default_cfg["save_dir"] = save_dir
 
     # save cfg
     os.makedirs(save_dir, exist_ok=True)
