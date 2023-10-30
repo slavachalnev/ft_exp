@@ -43,6 +43,7 @@ class Buffer:
     
     def load_data(self):
         self.token_pointer = 0
+        self.all_tokens = None
         os.makedirs("data", exist_ok=True)
         cache_path = "data/c4_code_2b_tokens_reshaped.pt"
         dataset_path = "data/c4_code_tokenized_2b.hf"
