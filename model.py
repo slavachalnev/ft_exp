@@ -33,8 +33,7 @@ class MLP(nn.Module):
             raise NotImplementedError
 
     def forward(self, x, y):
-        x_cent = x + self.b_pre
-        activations = self.act(x_cent @ self.W_enc + self.b_enc)
+        activations = self.encode(x)
         x_pred = activations @ self.W_dec + self.b_dec
 
         # compute losses
@@ -49,5 +48,8 @@ class MLP(nn.Module):
         self.W_dec.data = self.W_dec / self.W_dec.norm(dim=-1, keepdim=True)
         
     def encode(self, x):
-        raise NotImplementedError
+        x_cent = x + self.b_pre
+        activations = self.act(x_cent @ self.W_enc + self.b_enc)
+        return activations
+    
     
