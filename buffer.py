@@ -41,6 +41,7 @@ class Buffer:
         self.refresh()
         print("Buffer initialised")
     
+    @torch.no_grad()
     def load_data(self):
         self.token_pointer = 0
         self.all_tokens = None
@@ -101,8 +102,8 @@ class Buffer:
             self.refresh()
         
         if self.token_pointer > self.all_tokens.shape[0] - self.cfg["model_batch_size"]:
-            print("Reloading the data")
-            self.load_data()
+            print('resetting the buffer')
+            self.token_pointer = 0
             self.refresh()
 
         return res_in, res_out

@@ -73,7 +73,7 @@ if __name__ == "__main__":
         "seq_len": 128,
 
         "lr": 1e-4,
-        "l1_coeff": 5e-3,
+        "l1_coeff": 0.01,
         "beta1": 0.9,
         "beta2": 0.99,
 
