@@ -21,6 +21,7 @@ import pandas as pd
 import requests
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from datasets import load_dataset
 from transformer_lens import HookedTransformer
 
@@ -43,7 +44,6 @@ from neuron_explainer.explanations.simulator import ExplanationNeuronSimulator
 from neuron_explainer.fast_dataclasses import loads
 
 from model import MLP
-# from config import InterpArgs
 
 
 EXPLAINER_MODEL_NAME = "gpt-4"  # "gpt-3.5-turbo"
@@ -57,7 +57,7 @@ TOTAL_EXAMPLES = OPENAI_EXAMPLES_PER_SPLIT * N_SPLITS
 REPLACEMENT_CHAR = "�"
 MAX_CONCURRENT = None
 
-DATASET_NAME = "openwebtext"
+DATASET_NAME = "NeelNanda/c4-code-tokenized-2b"
 
 
 @dataclass
@@ -178,9 +178,9 @@ def make_feature_activation_dataset(
     learned_dict.to(device)
 
     if max_features:
-        feat_dim = min(max_features, learned_dict.hidden_size)
+        feat_dim = min(max_features, learned_dict.d_hidden)
     else:
-        feat_dim = learned_dict.hidden_size
+        feat_dim = learned_dict.d_hidden
 
     sentence_dataset = load_dataset(DATASET_NAME, split="train", streaming=True)
 
@@ -214,7 +214,10 @@ def make_feature_activation_dataset(
                 )
                 sentence = next(iter_dataset)
                 # split the sentence into fragments
-                sentence_tokens = tokenizer_model.to_tokens(sentence["text"], prepend_bos=False).to(device)
+                # sentence_tokens = tokenizer_model.to_tokens(sentence["text"], prepend_bos=False).to(device)
+                # sentence_tokens = sentence["tokens"]
+                sentence_tokens = torch.tensor(sentence["tokens"], dtype=torch.long, device=device)
+                sentence_tokens = sentence_tokens.unsqueeze(0)
                 n_tokens = sentence_tokens.shape[1]
                 # get a random fragment from the sentence - only taking one fragment per sentence so examples aren't correlated]
                 if random_fragment:
@@ -242,6 +245,7 @@ def make_feature_activation_dataset(
                 token_ids = fragment_tokens[0].tolist()
 
                 feature_activation_data = learned_dict.encode(activation_data)
+                feature_activation_data = F.relu(feature_activation_data) # only keep positive activations
                 feature_activation_maxes = torch.max(feature_activation_data, dim=0)[0]
 
                 activation_maxes_table[n_added, :] = feature_activation_maxes.cpu().numpy()[:feat_dim]
@@ -641,9 +645,9 @@ if __name__ == "__main__":
     # print(f"len active: {len(active)}")
 
 
-    run(mlp, cfg)
+    # run(mlp, cfg)
 
-    # read_results(mlp_dir, "activations", "top")
+    read_results(mlp_dir, "activations", "top")
 
 
 

@@ -41,7 +41,6 @@ def train(cfg, model, buffer, save_dir):
                 print("Reconstruction:", x)
                 recons_scores.append(x[0])
                 freqs = get_freqs(original_model=original_model, local_encoder=model, all_tokens=buffer.all_tokens, cfg=cfg, num_batches=5)
-                # histogram(freqs.log10(), marginal="box", histnorm="percent", title="Frequencies")
                 wandb.log({
                     "recons_score": x[0],
                     "dead": (freqs==0).float().mean().item(),
@@ -49,13 +48,6 @@ def train(cfg, model, buffer, save_dir):
                     "below_1e-5": (freqs<1e-5).float().mean().item(),
                     "num_activated": freqs.sum().item(),
                 })
-
-            # if (i) % 30000 == 0:
-                # wandb.log({"reset_neurons": 0.0})
-                # freqs = get_freqs(50)
-                # to_be_reset = (freqs<10**(-5.5))
-                # print("Resetting neurons!", to_be_reset.sum())
-                # re_init(to_be_reset, model)
 
             if (i+1) % 100000 == 0:
                 torch.save(model.state_dict(), os.path.join(save_dir, f"mlp_{i}.pt"))

@@ -32,7 +32,7 @@ def get_recons_loss(original_model, local_encoder, all_tokens, cfg, num_batches=
 
     loss_list = []
     for i in range(num_batches):
-        tokens = all_tokens[torch.randperm(len(all_tokens))[:cfg["model_batch_size"]]]
+        tokens = all_tokens[i*cfg["model_batch_size"]:(i+1)*cfg["model_batch_size"]]
         loss = original_model(tokens, return_type="loss")
         recons_loss = original_model.run_with_hooks(tokens, return_type="loss", fwd_hooks=fwd_hooks)
 
@@ -44,6 +44,9 @@ def get_recons_loss(original_model, local_encoder, all_tokens, cfg, num_batches=
         
     losses = torch.tensor(loss_list)
     loss, recons_loss, zero_abl_loss = losses.mean(0).tolist()
+
+    del losses, loss_list
+    torch.cuda.empty_cache()
 
     print(loss, recons_loss, zero_abl_loss)
     score = ((zero_abl_loss - recons_loss)/(zero_abl_loss - loss))
@@ -57,16 +60,20 @@ def get_freqs(original_model, local_encoder, all_tokens, cfg, num_batches=25):
     act_freq_scores = torch.zeros(local_encoder.d_hidden, dtype=torch.float32).cuda()
     total = 0
     for i in tqdm.trange(num_batches):
-        tokens = all_tokens[torch.randperm(len(all_tokens))[:cfg["model_batch_size"]]]
+        tokens = all_tokens[i*cfg["model_batch_size"]:(i+1)*cfg["model_batch_size"]]
         
         _, cache = original_model.run_with_cache(tokens, stop_at_layer=1, names_filter="blocks.0.ln2.hook_normalized")
         mlp_acts = cache["blocks.0.ln2.hook_normalized"]
         mlp_acts = mlp_acts.reshape(-1, cfg["d_in"])
 
-        hidden = local_encoder(mlp_acts, torch.zeros_like(mlp_acts))[2]
+        hidden = local_encoder.encode(mlp_acts)
         
         act_freq_scores += (hidden > 0).sum(0)
         total+=hidden.shape[0]
+
+    del mlp_acts, hidden, cache
+    torch.cuda.empty_cache()
+
     act_freq_scores /= total
     num_dead = (act_freq_scores==0).float().mean()
     print("Num dead", num_dead)
