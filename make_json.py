@@ -1,8 +1,13 @@
 import json
 
 import pandas as pd
-import numpy as np
 import torch
+from tqdm import tqdm
+
+
+SPACE = "·"
+NEWLINE="↩"
+TAB = "→"
 
 
 def make_json(tokens, acts, ft_id, original_model, save_path, top_n = 10):
@@ -28,39 +33,50 @@ def make_json(tokens, acts, ft_id, original_model, save_path, top_n = 10):
     ]
     """
     # tokens shape is (n_examples, len_example)
-    # acts shape is (n_examples, len_example)
-    tokens = tokens.cpu().numpy()
-    acts = acts.cpu().numpy()
+    # acts shape is (n_examples, len_example, n_neurons)
+    tokens = tokens.cpu()
+    acts = acts.cpu()
 
-    snippets = []
-    for i in range(tokens.shape[0]):
-        snippet = {}
-        example = tokens[i]
-        snippet["text"] = original_model.to_string(example)
-        snippet["max_activation"] = float(acts[i].max())
-        snippet["token_activation_pairs"] = []
-        for j in range(tokens.shape[1]):
-            snippet["token_activation_pairs"].append(
-                [
-                    original_model.to_string(example[j]),
-                    float(acts[i, j]),
-                ]
-            )
-        snippets.append(snippet)
-    
-    # sort by max_activation
-    snippets = sorted(snippets, key=lambda x: x["max_activation"], reverse=True)
-
-    # keep top_n
-    snippets = snippets[:top_n]
-
-    
-    res = [{
-        "neuron_id": str(ft_id),
-        "snippets": snippets,
-    }]
+    all_neurons = []
+    for n in tqdm(range(acts.shape[2])):
+        neuron = single_neuron(tokens, acts[:, :, n], n, original_model, top_n=top_n)
+        all_neurons.append(neuron)
 
     with open(save_path, "w") as f:
-        json.dump(res, f, indent=4)
+        json.dump(all_neurons, f, indent=4)
     print(f"Saved to {save_path}")
+
+
+def single_neuron(tokens: torch.Tensor, acts: torch.Tensor, ft_id, original_model, top_n=10):
+    # tokens shape is (n_examples, len_example)
+    # acts shape is (n_examples, len_example)
+
+    # get the indexes of examples with the highest max activation
+    max_acts = acts.max(dim=1)
+    sorted_top_indices = torch.argsort(max_acts.values, descending=True)[:top_n]
+
+    # Process only the top_n activations and corresponding tokens
+    snippets = []
+    for idx in sorted_top_indices:
+        snippet = {}
+        example = tokens[idx]
+        snippet["text"] = original_model.to_string(example)
+        snippet["max_activation"] = float(acts[idx].max())
+        snippet["token_activation_pairs"] = [
+            [
+                original_model.to_string(example[j]).replace(" ", SPACE)
+                                                      .replace("\n", NEWLINE + "\n")
+                                                      .replace("\t", TAB),
+                float(acts[idx, j])
+            ]
+            for j in range(example.shape[0])
+        ]
+        snippets.append(snippet)
+
+    res = {
+        "neuron_id": str(ft_id),
+        "snippets": snippets
+    }
+    return res
+
 
