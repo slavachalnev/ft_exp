@@ -84,10 +84,18 @@ def get_freqs(original_model, local_encoder, all_tokens, cfg, num_batches=25):
 @torch.no_grad()
 def find_similar_decoder_weights(model: MLP, feature: int):
     # sort decoder weights by cosine similarity to feature
-
     feature_weight = model.W_dec[feature]
-
     similarities = torch.cosine_similarity(model.W_dec, feature_weight.unsqueeze(0), dim=-1)
-    print(similarities.shape)
+    similarities, indices = torch.sort(similarities, descending=True)
+    return similarities, indices
 
+
+@torch.no_grad()
+def find_similar_encoder_weights(model: MLP, feature: int):
+    # sort encoder weights by cosine similarity to feature
+    enc_weights = model.W_enc.T
+    feature_weight = enc_weights[feature]
+    similarities = torch.cosine_similarity(enc_weights, feature_weight.unsqueeze(0), dim=-1)
+    similarities, indices = torch.sort(similarities, descending=True)
+    return similarities, indices
 

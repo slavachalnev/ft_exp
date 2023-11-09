@@ -65,7 +65,11 @@ if __name__ == "__main__":
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     save_dir = f"mlps/{timestamp}"
     os.makedirs(save_dir, exist_ok=True)
-    default_cfg = Config(save_dir=save_dir)
+    default_cfg = Config(
+        save_dir=save_dir,
+        in_hook="hook_resid_mid",
+        out_hook="hook_resid_post",
+    )
     default_cfg.to_json("cfg.json")
 
     original_model = HookedTransformer.from_pretrained(default_cfg.original_model)
