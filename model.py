@@ -44,8 +44,16 @@ class MLP(nn.Module):
         return loss, x_pred, activations, l2_loss, l1_loss
 
     @torch.no_grad()
-    def renormalise_decoder(self):
-        self.W_dec.data = self.W_dec / self.W_dec.norm(dim=-1, keepdim=True)
+    def renormalise_decoder(self, leq=False):
+        # self.W_dec.data = self.W_dec / self.W_dec.norm(dim=-1, keepdim=True)
+
+        # renormalise decoder weights. If leq=True, then renormalise to be <= 1, else renormalise to be = 1
+        norms = torch.norm(self.W_dec, dim=-1, keepdim=True)
+        if leq:
+            mask = (norms > 1).squeeze()
+            self.W_dec.data[mask] = self.W_dec[mask] / norms[mask]
+        else:
+            self.W_dec.data = self.W_dec / norms
         
     def encode(self, x):
         x_cent = x + self.b_pre

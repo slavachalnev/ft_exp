@@ -18,7 +18,10 @@ def train(cfg, model, buffer, save_dir):
     try:
         wandb.init(project="autoencoder", config=cfg)
         num_batches = cfg["num_tokens"] // cfg["batch_size"]
-        encoder_optim = torch.optim.Adam(model.parameters(), lr=cfg["lr"], betas=(cfg["beta1"], cfg["beta2"]))
+        encoder_optim = torch.optim.Adam(model.parameters(),
+                                         lr=cfg["lr"],
+                                         betas=(cfg["beta1"], cfg["beta2"]),
+                                         weight_decay=cfg["weight_decay"])
         recons_scores = []
         for i in tqdm.trange(num_batches):
             mlp_in, mlp_out = buffer.next()
@@ -27,7 +30,7 @@ def train(cfg, model, buffer, save_dir):
             loss.backward()
             encoder_optim.step()
             encoder_optim.zero_grad()
-            model.renormalise_decoder()
+            model.renormalise_decoder(leq=cfg["leq_renorm"])
 
             loss_dict = {"loss": loss.item(), "l2_loss": l2_loss.item(), "l1_loss": l1_loss.item()}
 
@@ -68,10 +71,12 @@ if __name__ == "__main__":
         "l1_coeff": 0.01,
         "beta1": 0.9,
         "beta2": 0.99,
+        "weight_decay": 1e-4,
 
         "d_hidden_mult": 4*8,  # ratio of hidden to input dimension
         "d_in": 512,
         "act": "gelu",
+        "leq_renorm": True,
     }
 
     default_cfg["model_batch_size"] = default_cfg["batch_size"] // default_cfg["seq_len"] * 16
