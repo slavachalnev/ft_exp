@@ -12,16 +12,17 @@ from transformer_lens import HookedTransformer
 from model import MLP
 from buffer import Buffer
 from utils import get_recons_loss, get_freqs
+from config import Config
 
 
 def train(cfg, model, buffer, save_dir):
     try:
         wandb.init(project="autoencoder", config=cfg)
-        num_batches = cfg["num_tokens"] // cfg["batch_size"]
+        num_batches = cfg.num_tokens // cfg.batch_size
         encoder_optim = torch.optim.Adam(model.parameters(),
-                                         lr=cfg["lr"],
-                                         betas=(cfg["beta1"], cfg["beta2"]),
-                                         weight_decay=cfg["weight_decay"])
+                                         lr=cfg.lr,
+                                         betas=(cfg.beta1, cfg.beta2),
+                                         weight_decay=cfg.weight_decay)
         recons_scores = []
         for i in tqdm.trange(num_batches):
             mlp_in, mlp_out = buffer.next()
@@ -30,7 +31,7 @@ def train(cfg, model, buffer, save_dir):
             loss.backward()
             encoder_optim.step()
             encoder_optim.zero_grad()
-            model.renormalise_decoder(leq=cfg["leq_renorm"])
+            model.renormalise_decoder(leq=cfg.leq_renorm)
 
             loss_dict = {"loss": loss.item(), "l2_loss": l2_loss.item(), "l1_loss": l1_loss.item()}
 
@@ -59,41 +60,15 @@ def train(cfg, model, buffer, save_dir):
 
 
 if __name__ == "__main__":
-    default_cfg = {
-        "original_model": "gelu-1l",
-        # "batch_size": 4096,
-        "batch_size": 2048,
-        "buffer_mult": 384,
-        "num_tokens": int(3e9),
-        "seq_len": 128,
-
-        "lr": 1e-4,
-        "l1_coeff": 0.01,
-        "beta1": 0.9,
-        "beta2": 0.99,
-        "weight_decay": 1e-4,
-
-        "d_hidden_mult": 4*8,  # ratio of hidden to input dimension
-        "d_in": 512,
-        "act": "gelu",
-        "leq_renorm": True,
-    }
-
-    default_cfg["model_batch_size"] = default_cfg["batch_size"] // default_cfg["seq_len"] * 16
-    default_cfg["buffer_size"] = default_cfg["batch_size"] * default_cfg["buffer_mult"]
-    default_cfg["buffer_batches"] = default_cfg["buffer_size"] // default_cfg["seq_len"]
 
     # create workdir
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     save_dir = f"mlps/{timestamp}"
-    default_cfg["save_dir"] = save_dir
-
-    # save cfg
     os.makedirs(save_dir, exist_ok=True)
-    with open(f"{save_dir}/cfg.json", "w") as f:
-        json.dump(default_cfg, f)
+    default_cfg = Config(save_dir=save_dir)
+    default_cfg.to_json("cfg.json")
 
-    original_model = HookedTransformer.from_pretrained(default_cfg["original_model"])
+    original_model = HookedTransformer.from_pretrained(default_cfg.original_model)
 
     model = MLP(default_cfg)
     model.to("cuda")

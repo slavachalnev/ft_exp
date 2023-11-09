@@ -3,6 +3,7 @@ from transformer_lens import utils as tutils
 import tqdm
 import torch
 from functools import partial
+from model import MLP
 
 @torch.no_grad()
 def get_recons_loss(original_model, local_encoder, all_tokens, cfg, num_batches=5):
@@ -26,13 +27,13 @@ def get_recons_loss(original_model, local_encoder, all_tokens, cfg, num_batches=
         return mlp_post_reconstr
 
     fwd_hooks = [
-        (f"blocks.0.ln2.hook_normalized", pre_hook),
-        (f"blocks.0.hook_mlp_out", replacement_hook),
+        (f"blocks.0.{cfg.in_hook}", pre_hook),
+        (f"blocks.0.{cfg.out_hook}", replacement_hook),
         ]
 
     loss_list = []
     for i in range(num_batches):
-        tokens = all_tokens[i*cfg["model_batch_size"]:(i+1)*cfg["model_batch_size"]]
+        tokens = all_tokens[i*cfg.model_batch_size:(i+1)*cfg.model_batch_size]
         loss = original_model(tokens, return_type="loss")
         recons_loss = original_model.run_with_hooks(tokens, return_type="loss", fwd_hooks=fwd_hooks)
 
@@ -60,11 +61,11 @@ def get_freqs(original_model, local_encoder, all_tokens, cfg, num_batches=25):
     act_freq_scores = torch.zeros(local_encoder.d_hidden, dtype=torch.float32).cuda()
     total = 0
     for i in tqdm.trange(num_batches):
-        tokens = all_tokens[i*cfg["model_batch_size"]:(i+1)*cfg["model_batch_size"]]
+        tokens = all_tokens[i*cfg.model_batch_size:(i+1)*cfg.model_batch_size]
         
-        _, cache = original_model.run_with_cache(tokens, stop_at_layer=1, names_filter="blocks.0.ln2.hook_normalized")
-        mlp_acts = cache["blocks.0.ln2.hook_normalized"]
-        mlp_acts = mlp_acts.reshape(-1, cfg["d_in"])
+        _, cache = original_model.run_with_cache(tokens, stop_at_layer=1, names_filter=f"blocks.0.{cfg.in_hook}")
+        mlp_acts = cache[f"blocks.0.{cfg.in_hook}"]
+        mlp_acts = mlp_acts.reshape(-1, cfg.d_in)
 
         hidden = local_encoder.encode(mlp_acts)
         
@@ -78,3 +79,15 @@ def get_freqs(original_model, local_encoder, all_tokens, cfg, num_batches=25):
     num_dead = (act_freq_scores==0).float().mean()
     print("Num dead", num_dead)
     return act_freq_scores
+
+
+@torch.no_grad()
+def find_similar_decoder_weights(model: MLP, feature: int):
+    # sort decoder weights by cosine similarity to feature
+
+    feature_weight = model.W_dec[feature]
+
+    similarities = torch.cosine_similarity(model.W_dec, feature_weight.unsqueeze(0), dim=-1)
+    print(similarities.shape)
+
+

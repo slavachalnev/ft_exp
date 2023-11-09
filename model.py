@@ -9,8 +9,8 @@ class MLP(nn.Module):
     def __init__(self, cfg: Dict):
         super(MLP, self).__init__()
 
-        d_in = cfg["d_in"]
-        d_hidden = d_in * cfg["d_hidden_mult"]
+        d_in = cfg.d_in
+        d_hidden = d_in * cfg.d_hidden_mult
 
         self.W_enc = nn.Parameter(torch.nn.init.kaiming_uniform_(torch.empty(d_in, d_hidden)))
         self.W_dec = nn.Parameter(torch.nn.init.kaiming_uniform_(torch.empty(d_hidden, d_in)))
@@ -23,11 +23,11 @@ class MLP(nn.Module):
 
         self.d_in = d_in
         self.d_hidden = d_hidden
-        self.l1_coeff = cfg["l1_coeff"]
+        self.l1_coeff = cfg.l1_coeff
 
-        if cfg["act"] == "relu":
+        if cfg.act == "relu":
             self.act = nn.ReLU()
-        elif cfg["act"] == "gelu":
+        elif cfg.act == "gelu":
             self.act = nn.GELU()
         else:
             raise NotImplementedError
