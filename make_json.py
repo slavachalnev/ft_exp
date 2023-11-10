@@ -39,7 +39,7 @@ def make_json(tokens, acts, ft_id, original_model, save_path, top_n = 10):
 
     all_neurons = []
     for n in tqdm(range(acts.shape[2])):
-        neuron = single_neuron(tokens, acts, n, original_model, top_n=top_n)
+        neuron = single_neuron(tokens, acts[:, :, ft_id], n, original_model, top_n=top_n)
         all_neurons.append(neuron)
 
     with open(save_path, "w") as f:
@@ -48,7 +48,6 @@ def make_json(tokens, acts, ft_id, original_model, save_path, top_n = 10):
 
 
 def single_neuron(tokens: torch.Tensor, acts: torch.Tensor, ft_id, original_model, top_n=10):
-    acts = acts[:, :, ft_id]
     # tokens shape is (n_examples, len_example)
     # acts shape is (n_examples, len_example)
 
