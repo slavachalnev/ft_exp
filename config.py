@@ -17,6 +17,7 @@ class Config:
     out_hook: str = "hook_mlp_out" # "hook_resid_post"
     lr: float = 1e-4
     l1_coeff: float = 0.005
+    l1_warmup: Optional[int] = None
     beta1: float = 0.9
     beta2: float = 0.99
     weight_decay: float = 1e-4

@@ -26,7 +26,14 @@ def train(cfg, model, buffer, save_dir):
         recons_scores = []
         for i in tqdm.trange(num_batches):
             mlp_in, mlp_out = buffer.next()
-            loss, x_reconstruct, mid_acts, l2_loss, l1_loss = model(mlp_in, mlp_out)
+
+            if cfg.l1_warmup is not None:
+                # l1_coeff = cfg.l1_coeff * min(1, (i+1) / cfg.l1_warmup)
+                l1_coeff = cfg.l1_coeff * min(1, (i*cfg.batch_size) / cfg.l1_warmup)
+            else:
+                l1_coeff = cfg.l1_coeff
+
+            loss, x_reconstruct, mid_acts, l2_loss, l1_loss = model(mlp_in, mlp_out, l1_coeff=l1_coeff)
 
             loss.backward()
             encoder_optim.step()
@@ -51,6 +58,7 @@ def train(cfg, model, buffer, save_dir):
                     "below_1e-6": (freqs<1e-6).float().mean().item(),
                     "below_1e-5": (freqs<1e-5).float().mean().item(),
                     "num_activated": freqs.sum().item(),
+                    "l1_coeff": l1_coeff,
                 })
 
             if (i+1) % 100000 == 0:
@@ -67,8 +75,13 @@ if __name__ == "__main__":
     os.makedirs(save_dir, exist_ok=True)
     default_cfg = Config(
         save_dir=save_dir,
-        in_hook="hook_resid_mid",
-        out_hook="hook_resid_post",
+
+        num_tokens=int(3e9),
+        d_hidden_mult=4*2,
+        l1_coeff=0.0003,
+        l1_warmup=int(3e9),
+        weight_decay=0.0,
+        lr=1e-4,
     )
     default_cfg.to_json("cfg.json")
 
