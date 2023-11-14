@@ -76,6 +76,7 @@ if __name__ == "__main__":
     default_cfg = Config(
         save_dir=save_dir,
 
+        per_neuron_coeff=True,
         num_tokens=int(3e9),
         d_hidden_mult=4*2,
         l1_coeff=0.0003,

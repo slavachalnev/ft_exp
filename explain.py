@@ -44,6 +44,7 @@ from neuron_explainer.explanations.simulator import ExplanationNeuronSimulator
 from neuron_explainer.fast_dataclasses import loads
 
 from model import MLP
+from config import Config
 
 
 EXPLAINER_MODEL_NAME = "gpt-4"  # "gpt-3.5-turbo"
@@ -616,8 +617,9 @@ if __name__ == "__main__":
     # mlp = Identity(size=d_model*4)
     # layer_loc = "mlp"
 
-    mlp_dir = "mlps/2023-11-01_11-01-34"
-    config = json.load(open(os.path.join(mlp_dir, "cfg.json"), "r"))
+    mlp_dir = "mlps/2023-11-12_23-53-18"
+    # config = json.load(open(os.path.join(mlp_dir, "cfg.json"), "r"))
+    config = Config.from_json(os.path.join(mlp_dir, "cfg.json"))
     layer_loc = "mlpin"
 
     model_path = os.path.join(mlp_dir, "mlp_final.pt")
@@ -632,7 +634,7 @@ if __name__ == "__main__":
 
     cfg = InterpArgs(
         layer=layer,
-        model_name=config['original_model'],
+        model_name=config.original_model,
         layer_loc=layer_loc,
         n_feats_explain=n_feats,
         save_loc=save_loc,
@@ -647,7 +649,7 @@ if __name__ == "__main__":
 
     # run(mlp, cfg)
 
-    read_results(mlp_dir, "activations", "top")
+    read_results(mlp_dir, "activations", "top_random")
 
 
 

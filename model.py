@@ -24,6 +24,12 @@ class MLP(nn.Module):
         self.d_in = d_in
         self.d_hidden = d_hidden
 
+        if cfg.per_neuron_coeff:
+            # Linearly decreasing coefficients from 2 to 0
+            self.per_neuron_coeff = torch.linspace(2, 0, steps=d_hidden, device="cuda")
+        else:
+            self.per_neuron_coeff = torch.ones(d_hidden, device="cuda")
+
         if cfg.act == "relu":
             self.act = nn.ReLU()
         elif cfg.act == "gelu":
@@ -38,7 +44,8 @@ class MLP(nn.Module):
         # compute losses
         l2_loss = (x_pred.float() - y.float()).pow(2).sum(-1).mean(0)
         positive_activations = F.relu(activations)
-        l1_loss = l1_coeff * (positive_activations.float().sum())
+        positive_activations = positive_activations.sum(0) # sum over batch
+        l1_loss = l1_coeff * (positive_activations.float() * self.per_neuron_coeff).sum()
         loss = l2_loss + l1_loss
         return loss, x_pred, activations, l2_loss, l1_loss
 
