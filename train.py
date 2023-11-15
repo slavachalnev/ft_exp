@@ -76,12 +76,12 @@ if __name__ == "__main__":
     default_cfg = Config(
         save_dir=save_dir,
 
-        per_neuron_coeff=True,
+        # per_neuron_coeff=True,
+
         num_tokens=int(3e9),
         d_hidden_mult=4*2,
         l1_coeff=0.0003,
-        l1_warmup=int(3e9),
-        weight_decay=0.0,
+        weight_decay=0.01,
         lr=1e-4,
     )
     default_cfg.to_json("cfg.json")
