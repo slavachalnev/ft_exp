@@ -23,7 +23,7 @@ def get_recons_loss(original_model, local_encoder, all_tokens, cfg, num_batches=
     
     def replacement_hook(mlp_post, hook):
         # have to run pre_hook first
-        mlp_post_reconstr = local_encoder(pre_h, torch.zeros_like(pre_h))[1]
+        mlp_post_reconstr = local_encoder.predict(pre_h)
         return mlp_post_reconstr
 
     fwd_hooks = [
@@ -49,16 +49,16 @@ def get_recons_loss(original_model, local_encoder, all_tokens, cfg, num_batches=
     del losses, loss_list
     torch.cuda.empty_cache()
 
-    print(loss, recons_loss, zero_abl_loss)
+    # print(loss, recons_loss, zero_abl_loss)
     score = ((zero_abl_loss - recons_loss)/(zero_abl_loss - loss))
-    print(f"{score:.2%}")
+    # print(f"{score:.2%}")
     return score, loss, recons_loss, zero_abl_loss
 
 
 @torch.no_grad()
 def get_freqs(original_model, local_encoder, all_tokens, cfg, num_batches=25):
     # Warning: layer idx is hardcoded.
-    act_freq_scores = torch.zeros(local_encoder.d_hidden, dtype=torch.float32).cuda()
+    act_freq_scores = torch.zeros(local_encoder.d_hidden, dtype=torch.float32).to(cfg.device)
     total = 0
     for i in tqdm.trange(num_batches):
         tokens = all_tokens[i*cfg.model_batch_size:(i+1)*cfg.model_batch_size]
@@ -76,8 +76,6 @@ def get_freqs(original_model, local_encoder, all_tokens, cfg, num_batches=25):
     torch.cuda.empty_cache()
 
     act_freq_scores /= total
-    num_dead = (act_freq_scores==0).float().mean()
-    print("Num dead", num_dead)
     return act_freq_scores
 
 

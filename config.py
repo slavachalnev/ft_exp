@@ -8,6 +8,7 @@ import datetime
 @dataclass
 class Config:
     save_dir: str
+    device: str = "cuda"
     original_model: str = "gelu-1l"
     batch_size: int = 2048
     buffer_mult: int = 384

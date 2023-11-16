@@ -68,6 +68,7 @@ def train(cfg, model, buffer, save_dir):
 
 
 if __name__ == "__main__":
+    device = "cuda" if torch.cuda.is_available() else "mps"
 
     # create workdir
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -75,6 +76,7 @@ if __name__ == "__main__":
     os.makedirs(save_dir, exist_ok=True)
     default_cfg = Config(
         save_dir=save_dir,
+        device=device,
 
         # per_neuron_coeff=True,
 
@@ -86,12 +88,12 @@ if __name__ == "__main__":
     )
     default_cfg.to_json("cfg.json")
 
-    original_model = HookedTransformer.from_pretrained(default_cfg.original_model)
+    original_model = HookedTransformer.from_pretrained(default_cfg.original_model, device=device)
 
     model = MLP(default_cfg)
-    model.to("cuda")
+    model.to(device)
 
-    buffer = Buffer(cfg=default_cfg, model=original_model)
+    buffer = Buffer(cfg=default_cfg, model=original_model, device=device)
 
     train(default_cfg, model, buffer, save_dir)
 

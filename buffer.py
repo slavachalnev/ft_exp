@@ -3,19 +3,20 @@ import torch
 import torch.nn as nn
 from datasets import load_dataset
 import einops
+import contextlib
 
 
 class Buffer:
     def __init__(self, cfg, model, device='cuda'):
         self.cfg = cfg
         self.model = model
-        self.device = device
+        self.device = torch.device(device)
         self.token_pointer = 0
         self.first = True
         self.layer_idx = 0
 
-        self.buffer_in = torch.zeros((cfg.buffer_size, cfg.d_in), device=device)
-        self.buffer_out = torch.zeros((cfg.buffer_size, cfg.d_in), device=device)
+        self.buffer_in = torch.zeros((cfg.buffer_size, cfg.d_in), device=self.device)
+        self.buffer_out = torch.zeros((cfg.buffer_size, cfg.d_in), device=self.device)
 
         self.pre_h = None
         self.post_h = None
@@ -68,27 +69,36 @@ class Buffer:
     @torch.no_grad()
     def refresh(self):
         self.pointer = 0
-        with torch.autocast("cuda", torch.bfloat16):
-            if self.first:
-                num_batches = self.cfg.buffer_batches
-            else:
-                num_batches = self.cfg.buffer_batches//2
-            self.first = False
-            for _ in range(0, num_batches, self.cfg.model_batch_size):
-                tokens = self.all_tokens[self.token_pointer:self.token_pointer+self.cfg.model_batch_size]
+        if self.device.type == 'cuda':
+            # Use autocast with arguments for CUDA devices
+            with torch.cuda.amp.autocast(device_type=self.device, dtype=torch.bfloat16):
+                self._process_buffer()
+        else:
+            # Use nullcontext for non-CUDA devices
+            with contextlib.nullcontext():
+                self._process_buffer()
 
-                with self.model.hooks(fwd_hooks=self.fwd_hooks):
-                    self.model(tokens, stop_at_layer=self.layer_idx+1)
+    def _process_buffer(self):
+        if self.first:
+            num_batches = self.cfg.buffer_batches
+        else:
+            num_batches = self.cfg.buffer_batches//2
+        self.first = False
+        for _ in range(0, num_batches, self.cfg.model_batch_size):
+            tokens = self.all_tokens[self.token_pointer:self.token_pointer+self.cfg.model_batch_size]
 
-                self.buffer_in[self.pointer: self.pointer+self.pre_h.shape[0]] = self.pre_h
-                self.buffer_out[self.pointer: self.pointer+self.post_h.shape[0]] = self.post_h
+            with self.model.hooks(fwd_hooks=self.fwd_hooks):
+                self.model(tokens, stop_at_layer=self.layer_idx+1)
 
-                self.pointer += self.pre_h.shape[0]
-                self.token_pointer += self.cfg.model_batch_size
+            self.buffer_in[self.pointer: self.pointer+self.pre_h.shape[0]] = self.pre_h
+            self.buffer_out[self.pointer: self.pointer+self.post_h.shape[0]] = self.post_h
+
+            self.pointer += self.pre_h.shape[0]
+            self.token_pointer += self.cfg.model_batch_size
 
         self.pointer = 0
         # Not sure if re-shuffling is necessary
-        perm = torch.randperm(self.buffer_in.shape[0]).cuda()
+        perm = torch.randperm(self.buffer_in.shape[0]).to(self.device)
         self.buffer_in = self.buffer_in[perm]
         self.buffer_out = self.buffer_out[perm]
 

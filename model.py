@@ -26,9 +26,9 @@ class MLP(nn.Module):
 
         if cfg.per_neuron_coeff:
             # Linearly decreasing coefficients from 2 to 0
-            self.per_neuron_coeff = torch.linspace(2, 0, steps=d_hidden, device="cuda")
+            self.per_neuron_coeff = torch.linspace(2, 0, steps=d_hidden, device=cfg.device)
         else:
-            self.per_neuron_coeff = torch.ones(d_hidden, device="cuda")
+            self.per_neuron_coeff = torch.ones(d_hidden, device=cfg.device)
 
         if cfg.act == "relu":
             self.act = nn.ReLU()
@@ -36,6 +36,8 @@ class MLP(nn.Module):
             self.act = nn.GELU()
         else:
             raise NotImplementedError
+        
+        self.to(cfg.device)
 
     def forward(self, x, y, l1_coeff=0.0):
         activations = self.encode(x)
@@ -66,4 +68,8 @@ class MLP(nn.Module):
         activations = self.act(x_cent @ self.W_enc + self.b_enc)
         return activations
     
+    def predict(self, x):
+        activations = self.encode(x)
+        x_pred = activations @ self.W_dec + self.b_dec
+        return x_pred
     
