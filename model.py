@@ -29,7 +29,9 @@ class MLP(nn.Module):
             self.per_neuron_coeff = torch.linspace(2, 0, steps=d_hidden, device=cfg.device)
         else:
             self.per_neuron_coeff = torch.ones(d_hidden, device=cfg.device)
-
+        
+        self.l1_sqrt = cfg.l1_sqrt
+        
         if cfg.act == "relu":
             self.act = nn.ReLU()
         elif cfg.act == "gelu":
@@ -46,6 +48,8 @@ class MLP(nn.Module):
         # compute losses
         l2_loss = (x_pred.float() - y.float()).pow(2).sum(-1).mean(0)
         positive_activations = F.relu(activations)
+        if self.l1_sqrt:
+            positive_activations = torch.sqrt(positive_activations)
         positive_activations = positive_activations.sum(0) # sum over batch
         l1_loss = l1_coeff * (positive_activations.float() * self.per_neuron_coeff).sum()
         loss = l2_loss + l1_loss

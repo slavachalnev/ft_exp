@@ -70,14 +70,11 @@ class Buffer:
     def refresh(self):
         self.pointer = 0
         if self.device.type == 'cuda':
-            # Use autocast with arguments for CUDA devices
-            with torch.cuda.amp.autocast(device_type=self.device, dtype=torch.bfloat16):
+            with torch.autocast("cuda", torch.bfloat16):
                 self._process_buffer()
         else:
-            # Use nullcontext for non-CUDA devices
-            with contextlib.nullcontext():
-                self._process_buffer()
-
+            self._process_buffer()
+        
     def _process_buffer(self):
         if self.first:
             num_batches = self.cfg.buffer_batches

@@ -19,6 +19,7 @@ class Config:
     lr: float = 1e-4
     l1_coeff: float = 0.005
     l1_warmup: Optional[int] = None
+    l1_sqrt: bool = False
     beta1: float = 0.9
     beta2: float = 0.99
     weight_decay: float = 1e-4

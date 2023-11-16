@@ -79,11 +79,12 @@ if __name__ == "__main__":
         device=device,
 
         # per_neuron_coeff=True,
+        l1_sqrt=True,
 
         num_tokens=int(3e9),
         d_hidden_mult=4*2,
         l1_coeff=0.0003,
-        weight_decay=0.01,
+        weight_decay=0.001,
         lr=1e-4,
     )
     default_cfg.to_json("cfg.json")
