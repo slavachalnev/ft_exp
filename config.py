@@ -10,10 +10,12 @@ class Config:
     save_dir: str
     device: str = "cuda"
     original_model: str = "gelu-1l"
-    batch_size: int = 2048
+    dataset: str = "NeelNanda/c4-code-tokenized-2b"
+    batch_size: int = 1024
     buffer_mult: int = 384
     num_tokens: int = int(3e9)
     seq_len: int = 128
+    layer_idx: int = 0
     in_hook: str = "ln2.hook_normalized" # "hook_resid_mid"
     out_hook: str = "hook_mlp_out" # "hook_resid_post"
     lr: float = 1e-4

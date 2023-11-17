@@ -78,18 +78,21 @@ if __name__ == "__main__":
         save_dir=save_dir,
         device=device,
 
-        # per_neuron_coeff=True,
-        l1_sqrt=True,
+        dataset="roneneldan/TinyStories",
+        original_model="tiny-stories-2L-33M",
+        d_in=1024,
+        layer_idx=1,
 
         num_tokens=int(3e9),
-        d_hidden_mult=4*2,
+        d_hidden_mult=4*4,
         l1_coeff=0.0003,
         weight_decay=0.001,
-        lr=1e-4,
+        lr=5e-5,
     )
     default_cfg.to_json("cfg.json")
 
     original_model = HookedTransformer.from_pretrained(default_cfg.original_model, device=device)
+    print(original_model)
 
     model = MLP(default_cfg)
     model.to(device)

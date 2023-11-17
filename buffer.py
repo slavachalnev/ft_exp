@@ -4,16 +4,18 @@ import torch.nn as nn
 from datasets import load_dataset
 import einops
 import contextlib
+from transformer_lens import utils as tutils
+from config import Config
 
 
 class Buffer:
-    def __init__(self, cfg, model, device='cuda'):
+    def __init__(self, cfg: Config, model, device='cuda'):
         self.cfg = cfg
         self.model = model
         self.device = torch.device(device)
         self.token_pointer = 0
         self.first = True
-        self.layer_idx = 0
+        self.layer_idx = cfg.layer_idx
 
         self.buffer_in = torch.zeros((cfg.buffer_size, cfg.d_in), device=self.device)
         self.buffer_out = torch.zeros((cfg.buffer_size, cfg.d_in), device=self.device)
@@ -47,15 +49,19 @@ class Buffer:
         self.token_pointer = 0
         self.all_tokens = None
         os.makedirs("data", exist_ok=True)
-        cache_path = "data/c4_code_2b_tokens_reshaped.pt"
-        dataset_path = "data/c4_code_tokenized_2b.hf"
+        data_name = self.cfg.dataset.split("/")[-1]
+        cache_path = f"data/{data_name}_tokens_reshaped.pt"
 
         if not os.path.exists(cache_path):
-            data = load_dataset("NeelNanda/c4-code-tokenized-2b", split="train")
-            data.save_to_disk(dataset_path)
-            data.set_format(type="torch", columns=["tokens"])
-            all_tokens = data["tokens"]
-            all_tokens.shape
+            data = load_dataset(self.cfg.dataset, split="train")
+            if "tokenized" in self.cfg.dataset:
+                # data.save_to_disk(dataset_path)
+                data.set_format(type="torch", columns=["tokens"])
+                all_tokens = data["tokens"]
+            else:
+                tokenized_data = tutils.tokenize_and_concatenate(data, self.model.tokenizer, max_length=1024)
+                tokenized_data = tokenized_data.shuffle(42)
+                all_tokens = tokenized_data["tokens"]
 
             all_tokens_reshaped = einops.rearrange(all_tokens, "batch (x seq_len) -> (batch x) seq_len", x=8, seq_len=128)
             all_tokens_reshaped[:, 0] = self.model.tokenizer.bos_token_id
