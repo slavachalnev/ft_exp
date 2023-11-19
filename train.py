@@ -85,7 +85,7 @@ if __name__ == "__main__":
 
         num_tokens=int(3e9),
         d_hidden_mult=4*4,
-        l1_coeff=0.0003,
+        l1_coeff=0.0006,
         weight_decay=0.001,
         lr=5e-5,
     )
