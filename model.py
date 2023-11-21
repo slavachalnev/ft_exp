@@ -99,8 +99,7 @@ class AutoEncoder(nn.Module):
         self.l1_coeff = l1_coeff
 
     def forward(self, x: torch.Tensor):
-        x_cent = x - self.b_dec
-        acts = F.relu(x_cent @ self.W_enc + self.b_enc)
+        acts = self.encode(x)
         x_reconstruct = acts @ self.W_dec + self.b_dec
         l2_loss = (x_reconstruct - x).pow(2).sum(-1).mean(0)
         l1_loss = self.l1_coeff * (acts.abs().sum())
@@ -114,3 +113,8 @@ class AutoEncoder(nn.Module):
             -1, keepdim=True
         ) * W_dec_normed
         self.W_dec.grad -= W_dec_grad_proj
+    
+    def encode(self, x: torch.Tensor):
+        x_cent = x - self.b_dec
+        acts = F.relu(x_cent @ self.W_enc + self.b_enc)
+        return acts

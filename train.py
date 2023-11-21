@@ -51,7 +51,17 @@ def train(cfg, model, buffer, save_dir):
                 x = get_recons_loss(original_model=original_model, local_encoder=model, all_tokens=buffer.all_tokens, cfg=cfg)
                 print("Reconstruction:", x)
                 recons_scores.append(x[0])
-                freqs = get_freqs(original_model=original_model, local_encoder=model, all_tokens=buffer.all_tokens, cfg=cfg, num_batches=5)
+                freqs = get_freqs(
+                    original_model=original_model,
+                    local_encoder=model,
+                    all_tokens=buffer.all_tokens,
+                    batch_size=cfg.model_batch_size,
+                    layer_idx=cfg.layer_idx,
+                    in_hook=cfg.in_hook,
+                    d_in=cfg.d_in,
+                    device=cfg.device,
+                    num_batches=5,
+                )
                 wandb.log({
                     "recons_score": x[0],
                     "dead": (freqs==0).float().mean().item(),
