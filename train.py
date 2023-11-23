@@ -49,10 +49,10 @@ def train(cfg, model, buffer, save_dir):
 
             del loss, x_reconstruct, mid_acts, l2_loss, l1_loss, mlp_in, mlp_out
 
-            if (i) % 100 == 0:
+            if (i) % 200 == 0:
                 wandb.log(loss_dict)
 
-            if (i) % 1000 == 0:
+            if (i) % 2000 == 0:
                 x = get_recons_loss(original_model=original_model, local_encoder=model, all_tokens=buffer.all_tokens, cfg=cfg)
                 print("Reconstruction:", x)
                 recons_scores.append(x[0])
@@ -76,7 +76,7 @@ def train(cfg, model, buffer, save_dir):
                     "l1_coeff": l1_coeff,
                 })
 
-            if (i+1) % 100000 == 0:
+            if (i+1) % 200000 == 0:
                 torch.save(model.state_dict(), os.path.join(save_dir, f"mlp_{i}.pt"))
     finally:
         torch.save(model.state_dict(), os.path.join(save_dir, "mlp_final.pt"))
