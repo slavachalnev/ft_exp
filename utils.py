@@ -57,16 +57,16 @@ def get_recons_loss(original_model, local_encoder, all_tokens, cfg, num_batches=
 
 
 @torch.no_grad()
-def get_freqs(original_model, local_encoder, all_tokens, cfg, num_batches=25):
-    act_freq_scores = torch.zeros(local_encoder.d_hidden, dtype=torch.float32).to(cfg.device)
+def get_freqs(original_model, local_encoder, all_tokens, batch_size, layer_idx, in_hook, d_in, device, num_batches=25):
+    act_freq_scores = torch.zeros(local_encoder.d_hidden, dtype=torch.float32).to(device)
     total = 0
     for i in tqdm.trange(num_batches):
-        tokens = all_tokens[i*cfg.model_batch_size:(i+1)*cfg.model_batch_size]
+        tokens = all_tokens[i*batch_size:(i+1)*batch_size]
         
-        _, cache = original_model.run_with_cache(tokens, stop_at_layer=cfg.layer_idx + 1,
-                                                 names_filter=f"blocks.{cfg.layer_idx}.{cfg.in_hook}")
-        mlp_acts = cache[f"blocks.{cfg.layer_idx}.{cfg.in_hook}"]
-        mlp_acts = mlp_acts.reshape(-1, cfg.d_in)
+        _, cache = original_model.run_with_cache(tokens, stop_at_layer=layer_idx + 1,
+                                                 names_filter=f"blocks.{layer_idx}.{in_hook}")
+        mlp_acts = cache[f"blocks.{layer_idx}.{in_hook}"]
+        mlp_acts = mlp_acts.reshape(-1, d_in)
 
         hidden = local_encoder.encode(mlp_acts)
         

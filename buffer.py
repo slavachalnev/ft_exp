@@ -9,19 +9,23 @@ from config import Config
 
 
 class Buffer:
-    def __init__(self, cfg: Config, model, device='cuda'):
+    def __init__(self, cfg: Config, model, device='cuda', return_mid=False):
         self.cfg = cfg
         self.model = model
         self.device = torch.device(device)
         self.token_pointer = 0
         self.first = True
         self.layer_idx = cfg.layer_idx
+        self.return_mid = return_mid
 
         self.buffer_in = torch.zeros((cfg.buffer_size, cfg.d_in), device=self.device)
         self.buffer_out = torch.zeros((cfg.buffer_size, cfg.d_in), device=self.device)
+        if return_mid:
+            self.buffer_mid = torch.zeros((cfg.buffer_size, cfg.d_in*4), device=self.device)
 
         self.pre_h = None
         self.post_h = None
+        self.mid_h = None
 
         def pre_hook(value, hook):
             h = value.detach().clone()
@@ -34,11 +38,19 @@ class Buffer:
             h = h.reshape(-1, self.cfg.d_in)
             self.post_h = h
             return value
+        
+        def mid_hook(value, hook):
+            h = value.detach().clone()
+            h = h.reshape(-1, self.cfg.d_in * 4)
+            self.mid_h = h
+            return value
 
         self.fwd_hooks = [
             (f"blocks.{self.layer_idx}.{cfg.in_hook}", pre_hook),
             (f"blocks.{self.layer_idx}.{cfg.out_hook}", post_hook),
             ]
+        if return_mid:
+            self.fwd_hooks.append((f"blocks.{self.layer_idx}.mlp.hook_post", mid_hook))
 
         self.load_data()
         self.refresh()
@@ -95,6 +107,8 @@ class Buffer:
 
             self.buffer_in[self.pointer: self.pointer+self.pre_h.shape[0]] = self.pre_h
             self.buffer_out[self.pointer: self.pointer+self.post_h.shape[0]] = self.post_h
+            if self.return_mid:
+                self.buffer_mid[self.pointer: self.pointer+self.mid_h.shape[0]] = self.mid_h
 
             self.pointer += self.pre_h.shape[0]
             self.token_pointer += self.cfg.model_batch_size
@@ -104,6 +118,8 @@ class Buffer:
         perm = torch.randperm(self.buffer_in.shape[0]).to(self.device)
         self.buffer_in = self.buffer_in[perm]
         self.buffer_out = self.buffer_out[perm]
+        if self.return_mid:
+            self.buffer_mid = self.buffer_mid[perm]
 
     @torch.no_grad()
     def next(self):
@@ -118,6 +134,10 @@ class Buffer:
             print('resetting the buffer')
             self.token_pointer = 0
             self.refresh()
+
+        if self.return_mid:
+            res_mid = self.buffer_mid[self.pointer:self.pointer+self.cfg.batch_size]
+            return res_in, res_out, res_mid
 
         return res_in, res_out
 
