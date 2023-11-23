@@ -8,6 +8,8 @@ import torch
 import torch.nn as nn
 import wandb
 from transformer_lens import HookedTransformer
+from torch.optim.lr_scheduler import CosineAnnealingLR
+
 
 from model import MLP
 from buffer import Buffer
@@ -23,6 +25,8 @@ def train(cfg, model, buffer, save_dir):
                                          lr=cfg.lr,
                                          betas=(cfg.beta1, cfg.beta2),
                                          weight_decay=cfg.weight_decay)
+
+        scheduler = CosineAnnealingLR(encoder_optim, T_max=num_batches, eta_min=cfg.lr*0.01)
         recons_scores = []
         for i in tqdm.trange(num_batches):
             mlp_in, mlp_out = buffer.next()
@@ -38,6 +42,7 @@ def train(cfg, model, buffer, save_dir):
             loss.backward()
             encoder_optim.step()
             encoder_optim.zero_grad()
+            scheduler.step()
             model.renormalise_decoder(leq=cfg.leq_renorm)
 
             loss_dict = {"loss": loss.item(), "l2_loss": l2_loss.item(), "l1_loss": l1_loss.item()}
@@ -83,9 +88,9 @@ if __name__ == "__main__":
         d_in=1024,
         layer_idx=1,
 
-        num_tokens=int(3e9),
+        num_tokens=int(5e9),
         d_hidden_mult=4*4,
-        l1_coeff=0.0006,
+        l1_coeff=0.00002,
         weight_decay=0.001,
         lr=5e-5,
     )
