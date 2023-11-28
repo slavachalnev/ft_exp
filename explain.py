@@ -613,7 +613,7 @@ if __name__ == "__main__":
     # mlp_dir = "mlps/2023-10-24_10-11-56"
     # mlp.load_state_dict(torch.load(os.path.join(mlp_dir, f"mlp_8192_layer_{layer}.pt")))
 
-    mlp_dir = "mlps/2023-11-12_23-53-18"
+    mlp_dir = "mlps/2023-11-26_17-53-28"
     config = Config.from_json(os.path.join(mlp_dir, "cfg.json"))
     layer_loc = "mlpin"
 
@@ -622,9 +622,9 @@ if __name__ == "__main__":
     mlp.load_state_dict(torch.load(model_path))
     mlp.to('cuda')
 
-    mlp_dir = "mlps/id"
-    mlp = Identity(size=d_model*4)
-    layer_loc = "mlp"
+    # mlp_dir = "mlps/id"
+    # mlp = Identity(size=d_model*4)
+    # layer_loc = "mlp"
 
     n_feats = 20
     save_loc = os.path.join(mlp_dir, "activations")
