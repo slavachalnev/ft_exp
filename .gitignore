@@ -166,3 +166,6 @@ wandb/
 *.pt
 
 *.json
+*.html
+
+.DS_Store
