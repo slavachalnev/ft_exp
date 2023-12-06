@@ -39,6 +39,8 @@ class MLP(nn.Module):
         else:
             raise NotImplementedError
         
+        self.renorm_to = cfg.renorm_to
+        
         self.to(cfg.device)
 
     def forward(self, x, y, l1_coeff=0.0):
@@ -60,7 +62,7 @@ class MLP(nn.Module):
         # self.W_dec.data = self.W_dec / self.W_dec.norm(dim=-1, keepdim=True)
 
         # renormalise decoder weights. If leq=True, then renormalise to be <= 1, else renormalise to be = 1
-        norms = torch.norm(self.W_dec, dim=-1, keepdim=True)
+        norms = torch.norm(self.W_dec, dim=-1, keepdim=True) / self.renorm_to
         if leq:
             mask = (norms > 1).squeeze()
             self.W_dec.data[mask] = self.W_dec[mask] / norms[mask]

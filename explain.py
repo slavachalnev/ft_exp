@@ -58,7 +58,7 @@ TOTAL_EXAMPLES = OPENAI_EXAMPLES_PER_SPLIT * N_SPLITS
 REPLACEMENT_CHAR = "�"
 MAX_CONCURRENT = None
 
-DATASET_NAME = "NeelNanda/c4-code-tokenized-2b"
+# DATASET_NAME = "NeelNanda/c4-code-tokenized-2b"
 
 
 @dataclass
@@ -215,11 +215,15 @@ def make_feature_activation_dataset(
                 )
                 sentence = next(iter_dataset)
                 # split the sentence into fragments
-                # sentence_tokens = tokenizer_model.to_tokens(sentence["text"], prepend_bos=False).to(device)
-                # sentence_tokens = sentence["tokens"]
-                sentence_tokens = torch.tensor(sentence["tokens"], dtype=torch.long, device=device)
-                sentence_tokens = sentence_tokens.unsqueeze(0)
+
+                sentence_tokens = tokenizer_model.to_tokens(sentence["text"], prepend_bos=False).to(device)
+                # sentence_tokens = torch.tensor(sentence["tokens"], dtype=torch.long, device=device)
+                # sentence_tokens = sentence_tokens.unsqueeze(0)
+
                 n_tokens = sentence_tokens.shape[1]
+                if n_tokens <= OPENAI_FRAGMENT_LEN:
+                    continue
+
                 # get a random fragment from the sentence - only taking one fragment per sentence so examples aren't correlated]
                 if random_fragment:
                     token_start = np.random.randint(0, n_tokens - OPENAI_FRAGMENT_LEN)
@@ -607,7 +611,7 @@ def read_results(base_dir: str, activation_name: str, score_mode: str) -> None:
 
 
 if __name__ == "__main__":
-    layer = 0
+    layer = 1
 
     # mlp = ReluMLP(d_model, d_model*4*expansion_factor, d_model)
     # mlp_dir = "mlps/2023-10-24_10-11-56"
@@ -616,6 +620,8 @@ if __name__ == "__main__":
     mlp_dir = "mlps/2023-11-26_17-53-28"
     config = Config.from_json(os.path.join(mlp_dir, "cfg.json"))
     layer_loc = "mlpin"
+
+    DATASET_NAME = config.dataset
 
     model_path = os.path.join(mlp_dir, "mlp_final.pt")
     mlp = MLP(cfg=config)
@@ -646,9 +652,9 @@ if __name__ == "__main__":
     # print(f"len active: {len(active)}")
 
 
-    # run(mlp, cfg)
+    run(mlp, cfg)
 
-    read_results(mlp_dir, "activations", "top_random")
+    # read_results(mlp_dir, "activations", "top_random")
 
 
 

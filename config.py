@@ -29,6 +29,7 @@ class Config:
     d_in: int = 512
     act: str = "gelu"
     leq_renorm: bool = True
+    renorm_to: float = 1.0
     per_neuron_coeff: bool = False
     model_batch_size: int = field(init=False)
     buffer_size: int = field(init=False)
