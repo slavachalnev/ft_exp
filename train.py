@@ -89,24 +89,7 @@ if __name__ == "__main__":
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     save_dir = f"mlps/{timestamp}"
     os.makedirs(save_dir, exist_ok=True)
-    # default_cfg = Config(
-    #     save_dir=save_dir,
-    #     device=device,
-
-    #     dataset="roneneldan/TinyStories",
-    #     original_model="tiny-stories-2L-33M",
-    #     d_in=1024,
-    #     layer_idx=1,
-
-    #     act='relu',
-
-    #     num_tokens=int(4e9),
-    #     d_hidden_mult=4*4,
-    #     l1_coeff=0.0002,
-    #     # weight_decay=0.0,
-    #     lr=5e-5,
-    # )
-    default_cfg = Config( # this is laced durian except renorm to 5
+    default_cfg = Config(
         save_dir=save_dir,
         device=device,
 
@@ -115,16 +98,16 @@ if __name__ == "__main__":
         d_in=1024,
         layer_idx=1,
 
-        act='gelu',
+        add_pre_bias=False,
 
-        renorm_to=5.0,
-        weight_decay=0.001,
+        act='relu',
 
         num_tokens=int(4e9),
         d_hidden_mult=4*4,
         l1_coeff=0.0002,
         lr=5e-5,
     )
+
     default_cfg.to_json("cfg.json")
 
     original_model = HookedTransformer.from_pretrained(default_cfg.original_model, device=device)

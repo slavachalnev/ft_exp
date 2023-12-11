@@ -18,6 +18,7 @@ class MLP(nn.Module):
         self.b_dec = nn.Parameter(torch.zeros(d_in))
 
         self.b_pre = nn.Parameter(torch.zeros(d_in)) # pre-mlp bias
+        self.add_pre_bias = cfg.add_pre_bias
 
         self.W_dec.data[:] = self.W_dec / self.W_dec.norm(dim=-1, keepdim=True)
 
@@ -70,7 +71,10 @@ class MLP(nn.Module):
             self.W_dec.data = self.W_dec / norms
         
     def encode(self, x):
-        x_cent = x + self.b_pre
+        if self.add_pre_bias:
+            x_cent = x + self.b_pre
+        else:
+            x_cent = x
         activations = self.act(x_cent @ self.W_enc + self.b_enc)
         return activations
     
