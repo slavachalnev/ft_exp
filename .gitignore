@@ -166,6 +166,9 @@ wandb/
 *.pt
 
 *.json
-*.html
+# *.html
+
+
+autoencoders/
 
 .DS_Store
