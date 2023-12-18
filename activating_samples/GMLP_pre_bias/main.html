@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Neuron Highlights</title>
+</head>
+<body>
+    <h1>Neuron Highlights</h1>
+    <div id="links"></div>
+
+    <script>
+        function generateLinks() {
+            var container = document.getElementById('links');
+            for (var i = 0; i <= 100; i++) {
+                var a = document.createElement('a');
+                var linkText = document.createTextNode('Neuron ' + i + ' Highlights');
+                a.appendChild(linkText);
+                a.title = 'Neuron ' + i + ' Highlights';
+                a.href = 'neuron_' + i + '_highlights.html';
+                container.appendChild(a);
+                container.appendChild(document.createElement('br'));
+            }
+        }
+
+        generateLinks();
+    </script>
+</body>
+</html>
