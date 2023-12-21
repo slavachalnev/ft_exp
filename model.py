@@ -1,3 +1,8 @@
+#
+# model code is adapted from Neel Nanda's autoencoder replication.
+# https://github.com/neelnanda-io/1L-Sparse-Autoencoder
+#
+
 from typing import Dict
 
 import torch
