@@ -1,5 +1,10 @@
 torch
 numpy
+pandas
 matplotlib
+plotly
 transformer_lens
+transformers
+datasets
 wandb
+tqdm
