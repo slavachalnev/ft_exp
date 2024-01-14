@@ -5,4 +5,4 @@ The main analysis is in `analysis.ipynb`.
 
 Training code is in `train.py` and model definitions are in `model.py`.
 
-![diagram](training_diagram.png)
+![diagram](overall_diagram_v2.png)

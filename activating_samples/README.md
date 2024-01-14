@@ -1,6 +1,6 @@
 ## Top activating samples
 
-GMLP activations:
+Distilled model activations:
 https://slavachalnev.github.io/ft_exp/activating_samples/GMLP_pre_bias/main.html
 
 Autoencoder activations:
