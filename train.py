@@ -103,8 +103,6 @@ if __name__ == "__main__":
         d_in=1024,
         layer_idx=1,
 
-        add_pre_bias=False,
-
         act='relu',
 
         num_tokens=int(4e9),
